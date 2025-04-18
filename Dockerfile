@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copie o restante do código para dentro do container
 COPY . .
 
-# Exponha a porta 5000 (porta do Flask)
-EXPOSE 5000
+# Exponha a porta 5000 (porta do Quart)
+EXPOSE 8080
 
-# Comando para rodar o aplicativo
+# Comando para rodar o aplicativo Quart
 CMD ["python", "sendWppGroups.py"]

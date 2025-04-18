@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import logging
 import requests
-from flask import Flask, request, jsonify
+from quart import Quart, request, jsonify  # Quart no lugar de Flask
 from collections import deque
 import asyncio
 import threading
@@ -29,14 +29,14 @@ client = TelegramClient('session_name', API_ID, API_HASH)
 # Diretório para salvar as imagens
 download_folder = "downloads/"
 
-# Flask para receber a nova requisição
-app = Flask(__name__)
+# Quart para receber a nova requisição
+app = Quart(__name__)
 
 # URL da API para o WhatsApp
 api_url = "https://sendtelegramtowpp-production.up.railway.app/send"
 
 # Função para enviar a mensagem ao WhatsApp
-def send_whatsapp_message(phone=None, group_id=None, message="", image=None):
+async def send_whatsapp_message(phone=None, group_id=None, message="", image=None):
     """
     Envia mensagens para grupos do WhatsApp via API local.
     """
@@ -60,9 +60,9 @@ def send_whatsapp_message(phone=None, group_id=None, message="", image=None):
 
     try:
         if files:
-            response = requests.post(api_url, data=data, files=files)
+            response = await asyncio.to_thread(requests.post, api_url, data=data, files=files)
         else:
-            response = requests.post(api_url, json=data)
+            response = await asyncio.to_thread(requests.post, api_url, json=data)
 
         if response.status_code == 200:
             logging.info(f"Mensagem enviada para {group_id} com sucesso.")
@@ -107,7 +107,7 @@ async def process_message(message):
 
         # Envia a mensagem para cada grupo do WhatsApp
         for group_id in GROUP_IDS:
-            response = send_whatsapp_message(
+            response = await send_whatsapp_message(
                 group_id=group_id.strip(),
                 message=message_text,
                 image=image_path
@@ -123,14 +123,14 @@ async def process_message(message):
         print(f"Erro ao processar mensagem\n {message.id}: {e}")
 
 
-# Flask API para receber novas mensagens e enviá-las ao WhatsApp
+# Quart API para receber novas mensagens e enviá-las ao WhatsApp
 @app.route('/send_message', methods=['POST'])
-def handle_new_message():
+async def handle_new_message():
     """
     Endpoint para enviar uma mensagem ao WhatsApp via a API
     """
     try:
-        data = request.json
+        data = await request.json
         message = data.get("message")
         group_id = data.get("group_id")
         image = data.get("image")  # Caminho da imagem
@@ -141,7 +141,7 @@ def handle_new_message():
         if group_id:
             logging.info(f"Enviando mensagem para o grupo {group_id}")
             # Enviar a mensagem para o grupo
-            response = send_whatsapp_message(group_id=group_id, message=message, image=image)
+            response = await send_whatsapp_message(group_id=group_id, message=message, image=image)
             return jsonify(response)
 
         else:
@@ -195,6 +195,6 @@ if __name__ == '__main__':
     t = threading.Thread(target=lambda: asyncio.run(start_telegram()))
     t.start()
 
-    port = int(os.environ.get("PORT", 5000))
-    # Iniciar o Flask para ouvir as requisições
-    app.run('0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 8080))
+    # Iniciar o Quart para ouvir as requisições
+    app.run(host="0.0.0.0", port=port)  # Rodar o Quart, não Flask, agora
