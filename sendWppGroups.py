@@ -9,7 +9,7 @@ import asyncio
 import threading
 
 # Carregar as variáveis de ambiente
-load_dotenv()
+load_dotenv(".env")
 
 # Configurações do cliente do Telegram
 API_ID = int(os.getenv("API_ID", "").strip())
@@ -195,5 +195,6 @@ if __name__ == '__main__':
     t = threading.Thread(target=lambda: asyncio.run(start_telegram()))
     t.start()
 
+    port = int(os.environ.get("PORT", 5000))
     # Iniciar o Flask para ouvir as requisições
-    app.run(port=5000)
+    app.run('0.0.0.0', port=port)
